@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from taskiq.labels import parse_label
 
@@ -24,6 +24,14 @@ class TaskiqMessage(BaseModel):
     args: list[Any]
     kwargs: dict[str, Any]
 
+    @field_validator("queue")
+    @classmethod
+    def queue_must_not_be_empty(cls, v: str) -> str:
+        """Validate that queue name is not empty or whitespace."""
+        if not v or not v.strip():
+            raise ValueError("Queue name must not be empty or whitespace")
+        return v
+
     def parse_labels(self) -> None:
         """
         Parse labels.
@@ -46,3 +54,11 @@ class BrokerMessage(BaseModel):
     queue: str = DEFAULT_QUEUE
     message: bytes
     labels: dict[str, Any]
+
+    @field_validator("queue")
+    @classmethod
+    def queue_must_not_be_empty(cls, v: str) -> str:
+        """Validate that queue name is not empty or whitespace."""
+        if not v or not v.strip():
+            raise ValueError("Queue name must not be empty or whitespace")
+        return v
