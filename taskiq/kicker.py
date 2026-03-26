@@ -66,6 +66,22 @@ class AsyncKicker(Generic[_FuncParams, _ReturnType]):
         self.labels.update(labels)
         return self
 
+    def with_queue(
+        self,
+        queue_name: str,
+    ) -> "AsyncKicker[_FuncParams, _ReturnType]":
+        """
+        Set the target queue for this task.
+
+        This is a convenience method equivalent to
+        ``with_labels(queue_name=queue_name)``.
+
+        :param queue_name: name of the queue to send the task to.
+        :return: kicker with updated queue label.
+        """
+        self.labels["queue_name"] = queue_name
+        return self
+
     def with_task_id(
         self,
         task_id: str | None,

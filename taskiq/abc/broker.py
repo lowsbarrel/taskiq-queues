@@ -118,6 +118,9 @@ class AsyncBroker(ABC):
         self.is_worker_process = False
         # True only if broker runs in scheduler process.
         self.is_scheduler_process = False
+        # Optional list of queues to listen on (set by worker CLI --queues).
+        # When None, brokers use their default queue.
+        self.listen_queues: list[str] | None = None
 
     def find_task(self, task_name: str) -> AsyncTaskiqDecoratedTask[Any, Any] | None:
         """

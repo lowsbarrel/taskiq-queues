@@ -213,6 +213,20 @@ class AsyncTaskiqDecoratedTask(Generic[_FuncParams, _ReturnType]):
             **kwargs,
         )
 
+    def with_queue(
+        self,
+        queue_name: str,
+    ) -> AsyncKicker[_FuncParams, _ReturnType]:
+        """
+        Return a kicker targeting the given queue.
+
+        Shortcut for ``task.kicker().with_queue(queue_name)``.
+
+        :param queue_name: name of the queue to send the task to.
+        :return: AsyncKicker with the queue label set.
+        """
+        return self.kicker().with_queue(queue_name)
+
     def kicker(self) -> AsyncKicker[_FuncParams, _ReturnType]:
         """
         This function returns kicker object.
@@ -225,7 +239,7 @@ class AsyncTaskiqDecoratedTask(Generic[_FuncParams, _ReturnType]):
         return AsyncKicker(
             task_name=self.task_name,
             broker=self.broker,
-            labels=self.labels,
+            labels=dict(self.labels),
             return_type=self.return_type,
         )
 

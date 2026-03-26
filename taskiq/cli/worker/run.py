@@ -146,6 +146,8 @@ def start_listen(args: WorkerArgs) -> None:
             )
 
     broker.is_worker_process = True
+    if args.queues:
+        broker.listen_queues = args.queues
     import_tasks(args.modules, args.tasks_pattern, args.fs_discover)
 
     receiver_type = get_receiver_type(args)

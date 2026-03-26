@@ -54,6 +54,7 @@ class WorkerArgs:
     wait_tasks_timeout: float | None = None
     hardkill_count: int = 3
     use_process_pool: bool = False
+    queues: list[str] = field(default_factory=list)
 
     @classmethod
     def from_cli(
@@ -268,6 +269,17 @@ class WorkerArgs:
             dest="max_process_pool_processes",
             default=None,
             help="Maximum number of processes in process pool.",
+        )
+        parser.add_argument(
+            "--queues",
+            "-q",
+            type=lambda s: s.split(","),
+            default=[],
+            help=(
+                "Comma-separated list of queue names to listen on. "
+                "Overrides the broker's default queue. "
+                "Example: --queues high,low,default"
+            ),
         )
 
         namespace = parser.parse_args(
