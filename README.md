@@ -95,6 +95,46 @@ Also, we have cool integrations with popular async frameworks. For example, we h
 
 Read about all features in our documentation: https://taskiq-python.github.io/
 
+# Multi-queue support
+
+Taskiq supports routing tasks to specific queues and having workers listen on one or more queues. By default, all tasks use the `"default"` queue.
+
+## Setting a queue on a task
+
+You can assign a default queue to a task via the decorator:
+
+```python
+@broker.task(queue="priority")
+async def important_task(x: int) -> int:
+    return x * 2
+```
+
+## Overriding the queue per invocation
+
+Use `with_queue` on a task or its kicker to override the queue at call time:
+
+```python
+# Shortcut on the task
+await important_task.with_queue("critical").kiq(42)
+
+# Or via the kicker
+await important_task.kicker().with_queue("bulk").kiq(42)
+```
+
+## Worker queue filtering
+
+Workers can be configured to only process tasks from specific queues using the `--queues` / `-q` CLI argument:
+
+```bash
+# Listen on multiple queues
+taskiq worker myapp:broker --queues critical,priority,default
+
+# Listen on a single queue
+taskiq worker myapp:broker -q emails
+```
+
+If `--queues` is not specified, the worker processes all incoming tasks regardless of queue.
+
 # Local development
 
 
