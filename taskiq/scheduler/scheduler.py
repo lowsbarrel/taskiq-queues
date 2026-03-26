@@ -48,7 +48,7 @@ class TaskiqScheduler:
             logger.info("Scheduled task %s has been cancelled.", task.task_name)
         else:
             await (
-                AsyncKicker(task.task_name, self.broker, task.labels)
+                AsyncKicker(task.task_name, self.broker, task.labels, queue=task.queue)
                 .with_labels(
                     schedule_id=task.schedule_id,
                 )

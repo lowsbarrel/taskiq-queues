@@ -4,6 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, root_validator
 
+from taskiq.message import DEFAULT_QUEUE
 from taskiq.scheduler.scheduled_task.validators import validate_interval_value
 
 
@@ -11,6 +12,7 @@ class ScheduledTask(BaseModel):
     """Abstraction over task schedule."""
 
     task_name: str
+    queue: str = DEFAULT_QUEUE
     labels: dict[str, Any]
     args: list[Any]
     kwargs: dict[str, Any]

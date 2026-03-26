@@ -25,7 +25,7 @@ from taskiq.decor import AsyncTaskiqDecoratedTask
 from taskiq.events import TaskiqEvents
 from taskiq.exceptions import TaskBrokerMismatchError
 from taskiq.formatters.proxy_formatter import ProxyFormatter
-from taskiq.message import BrokerMessage
+from taskiq.message import DEFAULT_QUEUE, BrokerMessage
 from taskiq.result_backends.dummy import DummyResultBackend
 from taskiq.serializers.json_serializer import JSONSerializer
 from taskiq.state import TaskiqState
@@ -270,6 +270,7 @@ class AsyncBroker(ABC):
     def task(
         self,
         task_name: str | None = None,
+        queue: str = DEFAULT_QUEUE,
         **labels: Any,
     ) -> Callable[
         [Callable[_FuncParams, _ReturnType]],
@@ -280,6 +281,7 @@ class AsyncBroker(ABC):
     def task(  # type: ignore[misc]
         self,
         task_name: str | None = None,
+        queue: str = DEFAULT_QUEUE,
         **labels: Any,
     ) -> Any:
         """
@@ -300,6 +302,7 @@ class AsyncBroker(ABC):
         >>>     ...
 
         :param task_name: custom name of a task, defaults to decorated function's name.
+        :param queue: target queue for this task, defaults to "default".
         :param labels: some addition labels for task.
 
         :returns: decorator function or AsyncTaskiqDecoratedTask.
@@ -307,6 +310,7 @@ class AsyncBroker(ABC):
 
         def make_decorated_task(
             inner_labels: dict[str, str | int],
+            inner_queue: str = DEFAULT_QUEUE,
             inner_task_name: str | None = None,
         ) -> Callable[
             [Callable[_FuncParams, _ReturnType]],
@@ -340,6 +344,7 @@ class AsyncBroker(ABC):
                         broker=self,
                         original_func=func,
                         labels=inner_labels,
+                        queue=inner_queue,
                         task_name=inner_task_name,
                         return_type=return_type,  # type: ignore
                     ),
@@ -360,6 +365,7 @@ class AsyncBroker(ABC):
 
         return make_decorated_task(
             inner_task_name=task_name,
+            inner_queue=queue,
             inner_labels=labels or {},
         )
 
@@ -367,6 +373,7 @@ class AsyncBroker(ABC):
         self,
         func: Callable[_FuncParams, _ReturnType],
         task_name: str | None = None,
+        queue: str = DEFAULT_QUEUE,
         **labels: Any,
     ) -> AsyncTaskiqDecoratedTask[_FuncParams, _ReturnType]:
         """
@@ -379,11 +386,12 @@ class AsyncBroker(ABC):
 
         :param func: function to register.
         :param task_name: custom name of a task, defaults to qualified function's name.
+        :param queue: target queue for this task, defaults to "default".
         :param labels: some addition labels for task.
 
         :returns: registered task.
         """
-        return self.task(task_name=task_name, **labels)(func)
+        return self.task(task_name=task_name, queue=queue, **labels)(func)
 
     def on_event(self, *events: TaskiqEvents) -> Callable[[EventHandler], EventHandler]:
         """

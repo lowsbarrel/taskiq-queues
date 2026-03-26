@@ -13,6 +13,7 @@ from typing import (
 )
 
 from taskiq.kicker import AsyncKicker
+from taskiq.message import DEFAULT_QUEUE
 from taskiq.scheduler.created_schedule import CreatedSchedule
 from taskiq.task import AsyncTaskiqTask
 
@@ -48,12 +49,14 @@ class AsyncTaskiqDecoratedTask(Generic[_FuncParams, _ReturnType]):
         task_name: str,
         original_func: Callable[_FuncParams, _ReturnType],
         labels: dict[str, Any],
+        queue: str = DEFAULT_QUEUE,
         return_type: type[_ReturnType] | None = None,
     ) -> None:
         self.broker = broker
         self.task_name = task_name
         self.original_func = original_func
         self.labels = labels
+        self.queue = queue
         self.return_type = return_type
 
         # This is a hack to make ProcessPoolExecutor work
@@ -215,17 +218,17 @@ class AsyncTaskiqDecoratedTask(Generic[_FuncParams, _ReturnType]):
 
     def with_queue(
         self,
-        queue_name: str,
+        queue: str,
     ) -> AsyncKicker[_FuncParams, _ReturnType]:
         """
         Return a kicker targeting the given queue.
 
-        Shortcut for ``task.kicker().with_queue(queue_name)``.
+        Shortcut for ``task.kicker().with_queue(queue)``.
 
-        :param queue_name: name of the queue to send the task to.
-        :return: AsyncKicker with the queue label set.
+        :param queue: name of the queue to send the task to.
+        :return: AsyncKicker with the queue set.
         """
-        return self.kicker().with_queue(queue_name)
+        return self.kicker().with_queue(queue)
 
     def kicker(self) -> AsyncKicker[_FuncParams, _ReturnType]:
         """
@@ -240,6 +243,7 @@ class AsyncTaskiqDecoratedTask(Generic[_FuncParams, _ReturnType]):
             task_name=self.task_name,
             broker=self.broker,
             labels=dict(self.labels),
+            queue=self.queue,
             return_type=self.return_type,
         )
 

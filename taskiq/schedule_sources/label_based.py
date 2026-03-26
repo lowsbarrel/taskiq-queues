@@ -53,6 +53,7 @@ class LabelScheduleSource(ScheduleSource):
 
                 self.schedules[schedule_id] = ScheduledTask(
                     task_name=task_name,
+                    queue=schedule.get("queue", task.queue),
                     labels=labels,
                     schedule_id=schedule_id,
                     args=schedule.get("args", []),

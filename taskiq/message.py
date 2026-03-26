@@ -4,6 +4,8 @@ from pydantic import BaseModel
 
 from taskiq.labels import parse_label
 
+DEFAULT_QUEUE = "default"
+
 
 class TaskiqMessage(BaseModel):
     """
@@ -16,6 +18,7 @@ class TaskiqMessage(BaseModel):
 
     task_id: str
     task_name: str
+    queue: str = DEFAULT_QUEUE
     labels: dict[str, Any]
     labels_types: dict[str, int] | None = None
     args: list[Any]
@@ -40,5 +43,6 @@ class BrokerMessage(BaseModel):
 
     task_id: str
     task_name: str
+    queue: str = DEFAULT_QUEUE
     message: bytes
     labels: dict[str, Any]

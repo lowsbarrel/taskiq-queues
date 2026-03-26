@@ -19,7 +19,7 @@ from taskiq.abc.middleware import TaskiqMiddleware
 from taskiq.compat import model_dump
 from taskiq.exceptions import SendTaskError
 from taskiq.labels import prepare_label
-from taskiq.message import TaskiqMessage
+from taskiq.message import DEFAULT_QUEUE, TaskiqMessage
 from taskiq.scheduler.created_schedule import CreatedSchedule
 from taskiq.scheduler.scheduled_task import CronSpec, ScheduledTask
 from taskiq.task import AsyncTaskiqTask
@@ -44,11 +44,13 @@ class AsyncKicker(Generic[_FuncParams, _ReturnType]):
         task_name: str,
         broker: "AsyncBroker",
         labels: dict[str, Any],
+        queue: str = DEFAULT_QUEUE,
         return_type: type[_ReturnType] | None = None,
     ) -> None:
         self.task_name = task_name
         self.broker = broker
         self.labels = labels
+        self.queue = queue
         self.custom_task_id: str | None = None
         self.custom_schedule_id: str | None = None
         self.return_type = return_type
@@ -68,18 +70,15 @@ class AsyncKicker(Generic[_FuncParams, _ReturnType]):
 
     def with_queue(
         self,
-        queue_name: str,
+        queue: str,
     ) -> "AsyncKicker[_FuncParams, _ReturnType]":
         """
         Set the target queue for this task.
 
-        This is a convenience method equivalent to
-        ``with_labels(queue_name=queue_name)``.
-
-        :param queue_name: name of the queue to send the task to.
-        :return: kicker with updated queue label.
+        :param queue: name of the queue to send the task to.
+        :return: kicker with updated queue.
         """
-        self.labels["queue_name"] = queue_name
+        self.queue = queue
         return self
 
     def with_task_id(
@@ -221,6 +220,7 @@ class AsyncKicker(Generic[_FuncParams, _ReturnType]):
         scheduled = ScheduledTask(
             schedule_id=schedule_id,
             task_name=message.task_name,
+            queue=message.queue,
             labels=message.labels,
             args=message.args,
             kwargs=message.kwargs,
@@ -255,6 +255,7 @@ class AsyncKicker(Generic[_FuncParams, _ReturnType]):
         scheduled = ScheduledTask(
             schedule_id=schedule_id,
             task_name=message.task_name,
+            queue=message.queue,
             labels=message.labels,
             args=message.args,
             kwargs=message.kwargs,
@@ -285,6 +286,7 @@ class AsyncKicker(Generic[_FuncParams, _ReturnType]):
         scheduled = ScheduledTask(
             schedule_id=schedule_id,
             task_name=message.task_name,
+            queue=message.queue,
             labels=message.labels,
             args=message.args,
             kwargs=message.kwargs,
@@ -346,6 +348,7 @@ class AsyncKicker(Generic[_FuncParams, _ReturnType]):
         return TaskiqMessage(
             task_id=task_id,
             task_name=self.task_name,
+            queue=self.queue,
             labels=labels,
             labels_types=labels_types,
             args=formatted_args,

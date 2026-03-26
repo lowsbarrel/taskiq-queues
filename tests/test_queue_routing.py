@@ -8,10 +8,11 @@ import pytest
 from taskiq import AsyncBroker, BrokerMessage
 from taskiq.acks import AckableMessage
 from taskiq.cli.worker.args import WorkerArgs
+from taskiq.message import DEFAULT_QUEUE
 
 
 class QueueCapturingBroker(AsyncBroker):
-    """Broker that captures which queue_name label each kicked message has."""
+    """Broker that captures kicked messages for inspection."""
 
     def __init__(self) -> None:
         super().__init__(None, None)
@@ -30,7 +31,7 @@ class QueueCapturingBroker(AsyncBroker):
 
 
 @pytest.mark.anyio
-async def test_kicker_with_queue_sets_label() -> None:
+async def test_kicker_with_queue_sets_queue() -> None:
     broker = QueueCapturingBroker()
 
     @broker.task
@@ -40,36 +41,36 @@ async def test_kicker_with_queue_sets_label() -> None:
     await my_task.kicker().with_queue("high").kiq(1)
 
     msg = broker.kicked_messages[0]
-    assert msg.labels["queue_name"] == "high"
+    assert msg.queue == "high"
 
 
 @pytest.mark.anyio
-async def test_kicker_with_queue_overrides_decorator_label() -> None:
+async def test_kicker_with_queue_overrides_decorator_queue() -> None:
     broker = QueueCapturingBroker()
 
-    @broker.task(queue_name="default")
+    @broker.task(queue="low")
     async def my_task(x: int) -> int:
         return x
 
     await my_task.kicker().with_queue("critical").kiq(1)
 
     msg = broker.kicked_messages[0]
-    assert msg.labels["queue_name"] == "critical"
+    assert msg.queue == "critical"
 
 
 @pytest.mark.anyio
 async def test_with_queue_does_not_mutate_task_defaults() -> None:
     broker = QueueCapturingBroker()
 
-    @broker.task(queue_name="default")
+    @broker.task(queue="default")
     async def my_task(x: int) -> int:
         return x
 
     await my_task.kicker().with_queue("special").kiq(1)
     await my_task.kiq(2)
 
-    assert broker.kicked_messages[0].labels["queue_name"] == "special"
-    assert broker.kicked_messages[1].labels["queue_name"] == "default"
+    assert broker.kicked_messages[0].queue == "special"
+    assert broker.kicked_messages[1].queue == "default"
 
 
 # -- with_queue on AsyncTaskiqDecoratedTask --
@@ -86,24 +87,41 @@ async def test_decorated_task_with_queue() -> None:
     await my_task.with_queue("emails").kiq(42)
 
     msg = broker.kicked_messages[0]
-    assert msg.labels["queue_name"] == "emails"
+    assert msg.queue == "emails"
 
 
-# -- with_labels(queue_name=...) still works --
+# -- decorator queue parameter --
 
 
 @pytest.mark.anyio
-async def test_with_labels_queue_name_still_works() -> None:
+async def test_decorator_queue_parameter() -> None:
+    broker = QueueCapturingBroker()
+
+    @broker.task(queue="priority")
+    async def my_task() -> None:
+        pass
+
+    await my_task.kiq()
+
+    msg = broker.kicked_messages[0]
+    assert msg.queue == "priority"
+
+
+# -- default queue --
+
+
+@pytest.mark.anyio
+async def test_default_queue_when_not_specified() -> None:
     broker = QueueCapturingBroker()
 
     @broker.task
     async def my_task() -> None:
         pass
 
-    await my_task.kicker().with_labels(queue_name="legacy").kiq()
+    await my_task.kiq()
 
     msg = broker.kicked_messages[0]
-    assert msg.labels["queue_name"] == "legacy"
+    assert msg.queue == DEFAULT_QUEUE
 
 
 # -- listen_queues attribute on broker --
@@ -138,22 +156,19 @@ def test_worker_args_queues_single() -> None:
     assert args.queues == ["emails"]
 
 
-# -- Scheduler label flow --
+# -- Scheduler queue flow --
 
 
 @pytest.mark.anyio
-async def test_scheduled_task_preserves_queue_label() -> None:
-    """When a task is scheduled with a queue_name label, the ScheduledTask stores it."""
+async def test_scheduled_task_preserves_queue() -> None:
+    """When a task is scheduled with a queue, the message carries it."""
     broker = QueueCapturingBroker()
 
-    @broker.task(queue_name="scheduled_queue")
+    @broker.task(queue="scheduled_queue")
     async def my_task(x: int) -> int:
         return x
 
-    # Build a kicker and prepare a scheduled task via schedule_by_cron
-    # We can't actually add to a source here, but we can verify the message
-    # has the queue_name label set.
     kicker = my_task.kicker().with_queue("cron_queue")
     message = kicker._prepare_message(1)
 
-    assert message.labels["queue_name"] == "cron_queue"
+    assert message.queue == "cron_queue"

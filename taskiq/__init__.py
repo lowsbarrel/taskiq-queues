@@ -25,7 +25,7 @@ from taskiq.exceptions import (
     TaskiqResultTimeoutError,
 )
 from taskiq.funcs import gather
-from taskiq.message import BrokerMessage, TaskiqMessage
+from taskiq.message import DEFAULT_QUEUE, BrokerMessage, TaskiqMessage
 from taskiq.middlewares import (
     PrometheusMiddleware,
     SimpleRetryMiddleware,
@@ -47,6 +47,7 @@ __all__ = [
     "AsyncTaskiqTask",
     "BrokerMessage",
     "Context",
+    "DEFAULT_QUEUE",
     "InMemoryBroker",
     "NoResultError",
     "PrometheusMiddleware",
