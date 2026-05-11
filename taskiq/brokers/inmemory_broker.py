@@ -2,6 +2,7 @@ import asyncio
 from collections import OrderedDict
 from collections.abc import AsyncGenerator
 from concurrent.futures import ThreadPoolExecutor
+from logging import getLogger
 from typing import Any, TypeVar
 
 from taskiq.abc.broker import AsyncBroker
@@ -9,11 +10,13 @@ from taskiq.abc.result_backend import AsyncResultBackend, TaskiqResult
 from taskiq.depends.progress_tracker import TaskProgress
 from taskiq.events import TaskiqEvents
 from taskiq.exceptions import UnknownTaskError
-from taskiq.message import BrokerMessage
+from taskiq.message import BrokerMessage, DEFAULT_QUEUE
 from taskiq.receiver import Receiver
 from taskiq.utils import maybe_awaitable
 
 _ReturnType = TypeVar("_ReturnType")
+
+logger = getLogger("taskiq.inmemory_broker")
 
 
 class InmemoryResultBackend(AsyncResultBackend[_ReturnType]):
@@ -155,6 +158,16 @@ class InMemoryBroker(AsyncBroker):
 
         :raises TaskiqError: if someone wants to kick unknown task.
         """
+        # Respect queue filtering to match real broker behavior.
+        # If listen_queues is set, only process messages for those queues.
+        if self.listen_queues is not None and message.queue not in self.listen_queues:
+            logger.debug(
+                "Dropping message for queue '%s' (listening on %s)",
+                message.queue,
+                self.listen_queues,
+            )
+            return
+
         target_task = self.find_task(message.task_name)
         if target_task is None:
             raise UnknownTaskError(task_name=message.task_name)
